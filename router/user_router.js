@@ -10,6 +10,5 @@ router.post("/login", userController.userLogin);
 router.post("/register", userController.userRegister);
 router.get("/userbyid/:id",authToken.checkToken, userController.getUserById);
 router.put("/userimage/image/:id",authToken.checkToken, upload.single('image'),userController.userImageUpload);
-router.post("/forgetpassword", forgetPasswordController.forgetPassword);
-router.post("/resetpassword", authToken.checkToken ,forgetPasswordController.ResetPassword);
+
 module.exports = router;

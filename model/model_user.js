@@ -12,7 +12,6 @@ var schema = new mongoose.Schema({
     required: [true, "Please enter a email address"],
     validate: [validator.isEmail, "Please enter a valid email"],
     lowercase: true,
-    unique: true,
     trim: true,
   },
   password: {
@@ -20,12 +19,11 @@ var schema = new mongoose.Schema({
     required: [true, "Please enter a password"],
     validate: [validator.isStrongPassword, "Enter a strong password"],
     minlength: 4,
-    maxlength: 10
   },
   confirmPassword: {
     type: String,
     required: [true, "confirm your password"],
-    validate: {
+   validate: {
       validator: function (el) {
         return el === this.password;
       },

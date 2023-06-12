@@ -1,7 +1,8 @@
+const req = require("express/lib/request");
 const User = require("../model/model_user");
 const jwt = require("jsonwebtoken");
 const cloudinary = require("cloudinary").v2;
-
+const bcrypt = require("bcrypt");
 cloudinary.config({
   cloud_name: "dn1p21zgh",
   api_key: "384833787236885",
@@ -10,13 +11,21 @@ cloudinary.config({
 //User Register and Login
 async function userRegister(req, res) {
   try {
-    const register = await User.create(req.body);
+    console.log(req.body);
+    const { username, password,email,contact,confirmPassword} = req.body;
+    
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const register = await User.create({ username, password: hashedPassword,confirmPassword:hashedPassword,email,contact});
     res.status(200).json(register);
   } catch (error) {
     console.log(error.message);
     res.status(500).json({ error: error.message });
   }
 }
+
+
 async function userImageUpload(req, res) {
   try {
     console.log("Uploading...");
@@ -55,14 +64,16 @@ async function getUserById(req, res) {
 
 async function userLogin(req, res) {
   try {
-    const user = await User.findOne({ username: req.body.username });
+    const { username, password } = req.body;
+
+    const user = await User.findOne({ username });
     if (user) {
-      const result = req.body.password === user.password;
-      if (result) {
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (passwordMatch) {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
         res.status(200).json({ token, user });
       } else {
-        res.status(400).json({ error: "password doesn't match" });
+        res.status(400).json({ error: "Password doesn't match" });
       }
     } else {
       res.status(400).json({ error: "User doesn't exist" });
