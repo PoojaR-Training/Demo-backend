@@ -5,7 +5,7 @@ const { response } = require("express");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 dotenv.config({ path: "config.env" });
-//Topic create
+let num;
 async function forgetPassword(req, res) {
   try {
     const user = await User.findOne({ username: req.body.username });
@@ -13,7 +13,25 @@ async function forgetPassword(req, res) {
     if (user) {
       const result = req.body.email === user.email;
       if (result) {
-        res.status(200).json(user);
+        let testAccount = await nodemailer.createTestAccount();
+        let otp = Math.floor(100000+Math.random()*900000);
+        let transporter = nodemailer.createTransport({
+          host: "smtp.ethereal.email",
+          port: 587,
+          auth: {
+            user: 'jessie.bogan25@ethereal.email',
+            pass: 'ddNrZ933AmSmH7yAgA'
+        }
+        });
+        let info = await transporter.sendMail({
+          from: '"Pooja Ranpara" <pooja@gmail.com>', // sender address
+          to: "poojajranpara15@gmail.com", // list of receivers
+          subject: "Otp Verification", // Subject line
+          text: `Your OTP to Reset password is ${otp}`, // plain text body
+        });
+      
+        console.log(info);
+        res.json(otp);
       
       } else {
         res
@@ -28,7 +46,24 @@ async function forgetPassword(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
-
+async function verifyotp(req, res){
+  try {
+   const {otp_origin} = req.params
+   const {code}=req.body
+    console.log(otp_origin,'valid')
+    console.log(code,'body')
+    if(otp_origin=== code){
+      res.status(200).json({ message: 'success' });
+    }
+    else{
+      res.status(500).json({ error: 'Invalid otp' });
+    }
+  }
+  catch (error) {
+    console.log(error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
 async function ResetPassword(req, res) {
   try {
     const { id } = req.params;
@@ -49,4 +84,5 @@ async function ResetPassword(req, res) {
 module.exports = {
   forgetPassword,
   ResetPassword,
+  verifyotp
 };

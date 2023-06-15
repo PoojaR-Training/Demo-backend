@@ -14,4 +14,6 @@ router.get("/getpropertybycity/:search",authToken.checkToken, propertyController
 router.get("/getpropertybycitytype/:type/:search",authToken.checkToken, propertyController.getpropertyByCityType);
 router.get("/getrentedproperty/:id",authToken.checkToken, propertyController.getRentedProperty);
 router.delete("/deleteproperty/:id",authToken.checkToken, propertyController.deleteProperty);
+router.post("/sendrequest/:owneremail",propertyController.sendRequest)
+
 module.exports = router;

@@ -15,6 +15,10 @@ var schema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  booked:{
+    type: Boolean,
+    default: false,
+  },
   description: {
     type: String,
     required: [true, "Please enter a description"],

@@ -1,6 +1,6 @@
 const Property = require("../model/model_property");
 const cloudinary = require("cloudinary").v2;
-
+const nodemailer = require("nodemailer");
 cloudinary.config({
   cloud_name: "dn1p21zgh",
   api_key: "384833787236885",
@@ -9,7 +9,7 @@ cloudinary.config({
 
 async function getPropertyData(req, res) {
   try {
-    const property = await Property.find({});
+    const property = await Property.find({ booked: false });
     if (!property) {
       return res.status(404).json({ message: `cannot find any property` });
     } else {
@@ -37,7 +37,7 @@ async function getPropertyById(req, res) {
 async function getpropertyByType(req, res) {
   try {
     const { type } = req.params;
-    const property = await Property.find({ type: type });
+    const property = await Property.find({ type: type, booked: false });
     if (!property) {
       return res
         .status(400)
@@ -56,12 +56,15 @@ async function getpropertyByCity(req, res) {
     console.log(search);
     const lowercaseSearch = search.toLowerCase();
     console.log(lowercaseSearch);
-    const property = await Property.find({ location: lowercaseSearch});
+    const property = await Property.find({
+      location: lowercaseSearch,
+      booked: false,
+    });
     if (property.length === 0) {
       return res.status(404).json({ message: "No property found" });
     }
     res.status(200).json(property);
-    console.log(property)
+    console.log(property);
   } catch (error) {
     console.log(error.message);
     res.status(500).json({ error: error.message });
@@ -69,10 +72,14 @@ async function getpropertyByCity(req, res) {
 }
 async function getpropertyByCityType(req, res) {
   try {
-    const {search} = req.params
-    const {type}=req.params
-    const lowercaseSearch = search.toLowerCase()
-    const property = await Property.find({ location: lowercaseSearch , type:type});
+    const { search } = req.params;
+    const { type } = req.params;
+    const lowercaseSearch = search.toLowerCase();
+    const property = await Property.find({
+      location: lowercaseSearch,
+      type: type,
+      booked: false,
+    });
     if (property.length === 0) {
       return res.status(404).json({ message: "No property found" });
     }
@@ -84,7 +91,7 @@ async function getpropertyByCityType(req, res) {
 }
 async function getPropertyByLike(req, res) {
   try {
-    const properties = await Property.find({ like: true });
+    const properties = await Property.find({ like: true, booked: false });
     if (properties.length === 0) {
       return res
         .status(404)
@@ -100,8 +107,8 @@ async function updateLike(req, res) {
   try {
     const { id } = req.params;
     const { like } = req.body;
-    console.log("like",like);
-    
+    console.log("like", like);
+
     const property = await Property.findById(id);
 
     if (!property) {
@@ -115,34 +122,60 @@ async function updateLike(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
- async function getRentedProperty(req, res, next) {
-  try{
-  const { id } = req.params;
-  const property = await Property.find({ ownerid: id});
-  if (property.length === 0) {
-    return res.status(404).json({ message: "No property found" });
+async function getRentedProperty(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await Property.find({ ownerid: id });
+    if (property.length === 0) {
+      return res.status(404).json({ message: "No property found" });
+    }
+    res.status(200).json(property);
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ error: error.message });
   }
-  res.status(200).json(property);
-} catch (error) {
-  console.log(error.message);
-  res.status(500).json({ error: error.message });
 }
- }
+
+async function sendRequest(req, res) {
+  const data = req.body;
+  const { name } = data[0];
+  const { email } = data[1];
+  const { from } = data[2];
+  const { to } = data[3];
+  const { time } = data[4];
+  const { property } = data[5];
+  const { location } = data[6];
+  const { owneremail } = req.params;
+
+  const text = `Dear Owner My self ${name},\nI am really interested to rent your ${property} located at ${location} from date ${from} to date ${to}.\nI would like to schedule meeting with you by ${time} so please coordinate your availability so we can coordinate some points regarding your property`;
+
+  let testAccount = await nodemailer.createTestAccount();
+  let transporter = nodemailer.createTransport({
+    host: "smtp.ethereal.email",
+    port: 587,
+    auth: {
+      user: "jessie.bogan25@ethereal.email",
+      pass: "ddNrZ933AmSmH7yAgA",
+    },
+  });
+  let info = await transporter.sendMail({
+    from: `"${name}" ${email}`, // sender address
+    to: owneremail, // list of receivers
+    subject: "Property Renting Request", // Subject line
+    text: text, // plain text body
+  });
+
+  console.log(info);
+  res.json('sucess');
+}
 async function propertyCreate(req, res) {
   try {
-   // console.log(req.body);
+    // console.log(req.body);
     const data = req.body;
-    const {ownerid}= req.params
+    const { ownerid } = req.params;
     console.log(ownerid);
-    const {
-      title,
-      description,
-      price,
-      rent,
-      location,
-      address,
-      area
-    } = data[0];
+    const { title, description, price, rent, location, address, area } =
+      data[0];
 
     const { type } = data[1];
 
@@ -167,7 +200,7 @@ async function propertyCreate(req, res) {
       seaview,
       freeparking,
       kitchen,
-      securitycamera
+      securitycamera,
     } = data.slice(4, 21).reduce((acc, item) => {
       const key = Object.keys(item)[0];
       const value = item[key];
@@ -175,15 +208,16 @@ async function propertyCreate(req, res) {
       return acc;
     }, {});
 
-    const { ownerimage, ownername, ownercontact, owneremail } = data.slice(21).reduce((acc, item) => {
-      const key = Object.keys(item)[0];
-      const value = item[key];
-      acc[key] = value;
-      return acc;
-    }, {});
+    const { ownerimage, ownername, ownercontact, owneremail } = data
+      .slice(21)
+      .reduce((acc, item) => {
+        const key = Object.keys(item)[0];
+        const value = item[key];
+        acc[key] = value;
+        return acc;
+      }, {});
 
     const lowercaseLocation = location.toLowerCase();
-
 
     // Upload cover image to Cloudinary
     const coverImageResult = await cloudinary.uploader.upload(cover);
@@ -203,7 +237,7 @@ async function propertyCreate(req, res) {
       title,
       description,
       price,
-      location:lowercaseLocation,
+      location: lowercaseLocation,
       address,
       area,
       type,
@@ -226,11 +260,11 @@ async function propertyCreate(req, res) {
       freeparking,
       kitchen,
       securitycamera,
-      ownerimage:ownerImageUrl,
+      ownerimage: ownerImageUrl,
       ownername,
       ownercontact,
       owneremail,
-      ownerid
+      ownerid,
     };
 
     const propertypost = await Property.create(propertyData);
@@ -241,10 +275,10 @@ async function propertyCreate(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
-async function deleteProperty(req, res, next){
-  try{
-  const {id} = req.params
-  const property = await Property.findByIdAndDelete(id);
+async function deleteProperty(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await Property.findByIdAndDelete(id);
     if (!property) {
       return res
         .status(404)
@@ -268,5 +302,6 @@ module.exports = {
   getpropertyByCity,
   getpropertyByCityType,
   getRentedProperty,
-  deleteProperty
+  deleteProperty,
+  sendRequest,
 };

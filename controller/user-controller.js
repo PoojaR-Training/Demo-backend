@@ -12,34 +12,53 @@ cloudinary.config({
 async function userRegister(req, res) {
   try {
     console.log(req.body);
-    const { username, password,email,contact,confirmPassword} = req.body;
-    
+    const { username, password, email, contact, confirmPassword } = req.body;
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const register = await User.create({ username, password: hashedPassword,confirmPassword:hashedPassword,email,contact});
+    const register = await User.create({
+      username,
+      password: hashedPassword,
+      confirmPassword: hashedPassword,
+      email,
+      contact,
+    });
     res.status(200).json(register);
   } catch (error) {
     console.log(error.message);
     res.status(500).json({ error: error.message });
   }
 }
-
+async function userbyid(req, res) {
+  try {
+    const { id } = req.params;
+    const user = User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: `cannot find any user` });
+    } else {
+      res.status(200).json(user);
+    }
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
 
 async function userImageUpload(req, res) {
   try {
     console.log("Uploading...");
     if (!req.file) {
-      console.log("no file to upload",req.file);
+      console.log("no file to upload", req.file);
       res.status(500).send({ error: "Error" });
     } else {
-      console.log("else",req.file);
-      
+      console.log("else", req.file);
+
       const id = req.params.id;
       const image = req.file.path;
       console.log(image);
       const profileImageResult = await cloudinary.uploader.upload(image);
-      const profileImageUrl = profileImageResult.secure_url;   
+      const profileImageUrl = profileImageResult.secure_url;
       await User.updateOne({ _id: id }, { $set: { image: profileImageUrl } });
       res.status(200).send({ success: "Success" });
     }
